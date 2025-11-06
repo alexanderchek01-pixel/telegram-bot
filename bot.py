@@ -92,39 +92,64 @@ def start(message):
     bot.reply_to(message, "Привет 👋! Бот запущен и работает ✅")
 
 
-import telebot
+# ------------- Обработчики команд (должны быть определены до polling) -------------
+@bot.message_handler(commands=['start'])
+def start(message):
+    try:
+        bot.reply_to(message, "Привет 👋! Бот запущен и работает ✅")
+        log_message(f"/start от {message.from_user.id}")
+    except Exception as e:
+        log_message(f"Ошибка в handler /start: {e}")
 
+# ------------- Функция запуска polling с защитой от webhook-conflict -------------
 def run_polling():
-    # Попробуем удалить webhook на всякий случай
+    # попробуем удалить webhook на всякий случай
     try:
         bot.remove_webhook()
         log_message("Удалил webhook (если был).")
     except Exception as e:
-        log_message(f"Не удалось удалить webhook: {e}")
+        log_message(f"Не удалось удалить webhook (может быть уже удален): {e}")
 
-    print("✅ Bot started and polling...")
-    try:
-        bot.send_message(chat_id=CHAT_ID, text="🚀 Бот запущен на Render и слушает команды!")
-    except Exception as e:
-        log_message(f"Не получилось послать стартовое сообщение: {e}")
-
+    # запускаем polling в цикле — ловим ApiTelegramException (409 Conflict)
     while True:
         try:
+            print("⚙️ Polling started successfully!")   # <-- метка для логов
+            log_message("Запускаю polling...")
             bot.polling(non_stop=True)
-        except telebot.apihelper.ApiTelegramException as e:
-            # Специально ловим 409 — конфликты вебхука/другого polling
-            if "409" in str(e) or "Conflict" in str(e):
-                log_message(f"ApiTelegramException 409 — conflict: {e}. Попытка удалить webhook и перезапустить.")
-                try:
-                    bot.remove_webhook()
-                    log_message("Удалил webhook после 409.")
-                except Exception as ex:
-                    log_message(f"Ошибка при удалении webhook после 409: {ex}")
-                time.sleep(10)
-                continue
-            else:
-                log_message(f"ApiTelegramException polling: {e}")
-                time.sleep(15)
         except Exception as e:
-            log_message(f"Ошибка polling (общее): {e}")
-            time.sleep(15)
+            try:
+                err = str(e)
+                if "409" in err or "Conflict" in err:
+                    log_message(f"ApiTelegramException 409 - conflict: {err}. Удаляю webhook и перезапускаю.")
+                    try:
+                        bot.remove_webhook()
+                        log_message("Удалил webhook после 409.")
+                    except Exception as ex:
+                        log_message(f"Ошибка при удалении webhook после 409: {ex}")
+                    time.sleep(5)
+                    continue
+                else:
+                    log_message(f"Ошибка polling: {e}")
+            except Exception as ex:
+                log_message(f"Ошибка обработки exception polling: {ex}")
+            time.sleep(5)  # пауза перед новой попыткой
+
+# ------------- Запускаем background-потоки: polling и основной цикл -------------
+import threading
+
+# поток для polling (слушает команды /start)
+threading.Thread(target=run_polling, daemon=True).start()
+
+# поток для основной логики (main_loop)
+threading.Thread(target=main_loop, daemon=True).start()
+
+# ------------- Сообщение о старте и "держим процесс живым" -------------
+if __name__ == "__main__":
+    try:
+        bot.send_message(chat_id=CHAT_ID, text="✅ Бот запущен (Render запустил main_loop и polling)")
+    except Exception as e:
+        log_message(f"Не удалось отправить стартовое сообщение: {e}")
+
+    log_message("Бот стартовал: polling и main_loop запущены в фоновых потоках.")
+    while True:
+        time.sleep(3600)
