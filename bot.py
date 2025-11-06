@@ -14,7 +14,7 @@ THRESHOLD = 10
 PRAGUE_TZ = pytz.timezone("Europe/Prague")
 LOG_FILE = "signals_log.txt"
 
-bot = TeleBot(TELEGRAM_TOKEN)   # ✅ правильное создание бота
+bot = telebot.TeleBot(TELEGRAM_TOKEN)   # ✅ правильное создание бота
 
 def log_message(message: str):
     timestamp = datetime.now(PRAGUE_TZ).strftime("%Y-%m-%d %H:%M:%S")
