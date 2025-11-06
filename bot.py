@@ -3,40 +3,51 @@ import requests
 import time
 from datetime import datetime
 import pytz
-import telebot   # ✅ правильный импорт для pyTelegramBotAPI
+import telebot
 
+# 🔧 Настройки и переменные окружения
 COINGLASS_API_KEY = os.getenv("COINGLASS_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-CHECK_INTERVAL = 60
+CHECK_INTERVAL = 60  # проверка каждую минуту
 THRESHOLD = 10
 PRAGUE_TZ = pytz.timezone("Europe/Prague")
 LOG_FILE = "signals_log.txt"
 
-bot = telebot.TeleBot(TELEGRAM_TOKEN)   # ✅ правильное создание бота
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# 🧾 Логирование
 def log_message(message: str):
     timestamp = datetime.now(PRAGUE_TZ).strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"[{timestamp}] {message}\n")
 
+
+# 📊 Получение данных волатильности
 def get_volatility():
     url = "https://open-api.coinglass.com/api/pro/v1/indicator/volatility"
     headers = {"coinglassSecret": COINGLASS_API_KEY}
-    response = requests.get(url, headers=headers, timeout=10)
-    data = response.json()
-    return data.get("data", [])
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        data = response.json()
+        return data.get("data", [])
+    except Exception as e:
+        log_message(f"Ошибка API: {e}")
+        return []
 
+
+# 📢 Отправка сигналов в Telegram
 def send_signal(symbol, vol):
     message = f"⚡ {symbol}: волатильность {vol:.2f}%"
     bot.send_message(chat_id=CHAT_ID, text=message)
     log_message(message)
 
+
+# 🔁 Сброс сигналов
 def reset_alerts_if_needed():
     global last_reset_date, sent_alerts
     now = datetime.now(PRAGUE_TZ)
-
     if now.date() != last_reset_date and now.hour == 0:
         try:
             with open(LOG_FILE, "rb") as f:
@@ -46,9 +57,14 @@ def reset_alerts_if_needed():
 
         sent_alerts.clear()
         last_reset_date = now.date()
-        msg = f"🔄 Сброс дневных сигналов — {now.strftime('%d.%m.%Y')}"
+        msg = f"♻️ Сброс дневных сигналов — {now.strftime('%d.%m.%Y')}"
         bot.send_message(chat_id=CHAT_ID, text=msg)
         log_message(msg)
+
+
+# 🔄 Основной цикл
+sent_alerts = set()
+last_reset_date = datetime.now(PRAGUE_TZ).date()
 
 def main_loop():
     while True:
@@ -66,30 +82,37 @@ def main_loop():
 
             time.sleep(CHECK_INTERVAL)
         except Exception as e:
-            log_message(f"Ошибка: {e}")
+            log_message(f"Ошибка main_loop: {e}")
             time.sleep(30)
+
+
+# 🧠 Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(message, "Привет 👋! Бот запущен и работает ✅")
 
 
+# 🚀 Запуск polling
 def run_polling():
     print("✅ Bot started and polling...")
-    bot.send_message(chat_id=CHAT_ID, text="🚀 Бот запущен на Render и работает!")
+    bot.send_message(chat_id=CHAT_ID, text="🚀 Бот запущен на Render и слушает команды!")
     while True:
         try:
-            bot.polling(none_stop=True)
+            bot.polling(non_stop=True)
         except Exception as e:
             log_message(f"Ошибка polling: {e}")
             time.sleep(15)
 
 
-# --- ВАЖНО: эти две строки ДОЛЖНЫ БЫТЬ СНАРУЖИ ---
+# 🔄 Запуск фоновых потоков
 import threading
-threading.Thread(target=run_polling, daemon=True).start()
+threading.Thread(target=main_loop, daemon=True).start()      # фоновая логика
+threading.Thread(target=run_polling, daemon=True).start()    # слушает команды /start
 
 
+# 💬 Сообщение при старте
 if __name__ == "__main__":
-    bot.send_message(chat_id=CHAT_ID, text="✅ Бот запущен (bot.py стартовал)")
-    log_message("Бот запущен")
-    main_loop()
+    bot.send_message(chat_id=CHAT_ID, text="✅ Бот запущен (Render запустил main_loop и polling)")
+    log_message("Бот запущен и оба потока работают")
+    while True:
+        time.sleep(3600)  # держит Render активным
