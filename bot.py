@@ -3,21 +3,18 @@ import requests
 import time
 from datetime import datetime
 import pytz
-from telegram import Bot
+from telebot import TeleBot   # ✅ правильный импорт для pyTelegramBotAPI
 
 COINGLASS_API_KEY = os.getenv("COINGLASS_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-CHECK_INTERVAL = 60  
-THRESHOLD = 10  
+CHECK_INTERVAL = 60
+THRESHOLD = 10
 PRAGUE_TZ = pytz.timezone("Europe/Prague")
 LOG_FILE = "signals_log.txt"
 
-bot = Bot(token=TELEGRAM_TOKEN)
-
-sent_alerts = set()
-last_reset_date = datetime.now(PRAGUE_TZ).date()
+bot = TeleBot(TELEGRAM_TOKEN)   # ✅ правильное создание бота
 
 def log_message(message: str):
     timestamp = datetime.now(PRAGUE_TZ).strftime("%Y-%m-%d %H:%M:%S")
