@@ -3,7 +3,7 @@ import requests
 import time
 from datetime import datetime
 import pytz
-from telebot import TeleBot   # ✅ правильный импорт для pyTelegramBotAPI
+import telebot   # ✅ правильный импорт для pyTelegramBotAPI
 
 COINGLASS_API_KEY = os.getenv("COINGLASS_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
