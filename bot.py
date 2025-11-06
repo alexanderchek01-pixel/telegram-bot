@@ -68,14 +68,10 @@ def main_loop():
         except Exception as e:
             log_message(f"Ошибка: {e}")
             time.sleep(30)
-
-if __name__ == "__main__":
-    bot.send_message(chat_id=CHAT_ID, text="✅ Бот запущен (bot.py стартовал)")
-    log_message("Бот запущен")
-    main_loop()
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(message, "Привет 👋! Бот запущен и работает ✅")
+
 
 def run_polling():
     print("✅ Bot started and polling...")
@@ -87,6 +83,13 @@ def run_polling():
             log_message(f"Ошибка polling: {e}")
             time.sleep(15)
 
-# запуск polling в отдельном потоке, чтобы не мешал твоему основному циклу main_loop
+
+# --- ВАЖНО: эти две строки ДОЛЖНЫ БЫТЬ СНАРУЖИ ---
 import threading
 threading.Thread(target=run_polling, daemon=True).start()
+
+
+if __name__ == "__main__":
+    bot.send_message(chat_id=CHAT_ID, text="✅ Бот запущен (bot.py стартовал)")
+    log_message("Бот запущен")
+    main_loop()
