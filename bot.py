@@ -31,11 +31,16 @@ def get_volatility():
     headers = {"coinglassSecret": COINGLASS_API_KEY}
     try:
         response = requests.get(url, headers=headers, timeout=10)
+
+
+
+        
         if DEBUG:
-    print("STATUS:", response.status_code)
-    print("RAW DATA:", response.text[:1000])
-    log_message(f"STATUS: {response.status_code}")
-    log_message(f"RAW DATA: {response.text[:1000]}")
+            print("STATUS:", response.status_code)
+            print("RAW DATA:", response.text[:1000])
+            log_message(f"STATUS: {response.status_code}")
+            log_message(f"RAW DATA: {response.text[:1000]}")
+
         data = response.json()
         return data.get("data", [])
     except Exception as e:
