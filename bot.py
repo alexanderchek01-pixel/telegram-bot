@@ -14,6 +14,7 @@ CHECK_INTERVAL = 60  # проверка каждую минуту
 THRESHOLD = 10
 PRAGUE_TZ = pytz.timezone("Europe/Prague")
 LOG_FILE = "signals_log.txt"
+DEBUG = True
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
@@ -30,6 +31,11 @@ def get_volatility():
     headers = {"coinglassSecret": COINGLASS_API_KEY}
     try:
         response = requests.get(url, headers=headers, timeout=10)
+        if DEBUG:
+    print("STATUS:", response.status_code)
+    print("RAW DATA:", response.text[:1000])
+    log_message(f"STATUS: {response.status_code}")
+    log_message(f"RAW DATA: {response.text[:1000]}")
         data = response.json()
         return data.get("data", [])
     except Exception as e:
@@ -72,7 +78,7 @@ def main_loop():
             reset_alerts_if_needed()
             data = get_volatility() or []
 
-            for item in data:
+            for item in data: 
                 symbol = item.get("symbol")
                 vol = item.get("volatility", 0)
 
