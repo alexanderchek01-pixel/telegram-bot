@@ -176,3 +176,12 @@ if __name__ == "__main__":
     log_message("Бот стартовал: polling и main_loop запущены в фоновых потоках.")
     while True:
         time.sleep(3600)
+try:
+    run_polling()
+except Exception as e:
+    import sys
+    if "Conflict" in str(e):
+        print("⚠️ Обнаружен второй экземпляр — бот завершает работу.")
+        sys.exit(0)
+    else:
+        print("❌ Ошибка при запуске бота:", e)
